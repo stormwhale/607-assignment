@@ -18,7 +18,8 @@ library(dplyr)
 
 
 
-## To get the CSV from Github link
+##Download and Import dataframe
+To get the CSV from Github link: https://raw.githubusercontent.com/fivethirtyeight/data/cdac9b8cc525a499d1cf36fa079a7127b56aebc6/polls/old_model/joe_biden_approval_old_model.csv
 ```{r code-chunk-label1}
 df<- read.csv("https://raw.githubusercontent.com/fivethirtyeight/data/cdac9b8cc525a499d1cf36fa079a7127b56aebc6/polls/old_model/joe_biden_approval_old_model.csv", header=TRUE)
 ```
@@ -42,14 +43,16 @@ df<- df %>%
     ))
 ```
 
-## generate a graph for the approval vs disapporval rating count
+## Graph 1
+generate a graph for the approval vs disapporval rating count
 ```{r code-chunk-label3}
 ggplot(df, aes(x = Conclusion, fill=Conclusion), color=Conclusion)+
   geom_bar() +
   labs(title='Joe Biden Approval/Disapproval rating from 2021 to 2023', x = '', y ='rating counted')
 
 ```
-## generate a graph for the approval vs disapporval rating graph over time by years
+## Graph 2
+generate a graph for the approval vs disapporval rating graph over time by years
 ```{r code-chunk-label4}
 df1<- format(as.Date(df$date), "%Y")
 df<-df %>%
@@ -62,8 +65,8 @@ ggplot(df, aes(x=only_year, fill=Conclusion, color=Conclusion))+
 ## Conclsuion and future improvement: 
 Joe Biden has an overall disapproval rating from 2021 to 2023. A further analysis can be done to zoom into the months of the year and draw connection to the political situations at the time to understand the polls. It will involve transforming the "date" column further.
 
-## RPub link:
-https://rpubs.com/stormwhale/1215570
+
+
 
 
 
