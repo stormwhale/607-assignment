@@ -1,0 +1,101 @@
+---
+title: "607 Lab 6 Project2"
+author: "Chi Hang(Philip) Cheung, Inna Yedzinovich"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r load-packages}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+```
+
+### Dataset 2 SAT scores in 2010
+```{r}
+url2<- "https://raw.githubusercontent.com/stormwhale/data-mines/refs/heads/main/SAT__College_Board__2010_School_Level_Results.csv"
+df2<- read.csv(url2)
+view(df2)
+colnames(df2)
+df2_tidy<- df2 %>%
+  pivot_longer(cols = c('Critical.Reading.Mean', 'Mathematics.Mean', 'Writing.Mean'),
+               names_to = 'Test_subjects',
+               values_to = 'Average_scores',
+               names_pattern ='(.*)\\.Mean')
+df2_tidy<-rename(df2_tidy,c('Number_of_test_takers'='Number.of.Test.Takers', 'School_name'='School.Name'))
+
+#drop NA schools
+df2_tidy<- df2_tidy %>%
+  subset(!is.na(Number_of_test_takers))
+
+#check if any NA still exist:
+any(sum(is.na(df2_tidy)))
+view(df2_tidy)
+```
+
+### Analyzing data
+```{r}
+#schools with Critical Reading score> 
+summary(df2_tidy) #Total number of school participated in the SAT = 386
+
+#To get the top 10 schools ranked by total SAT scores:
+top_total<-df2_tidy %>%
+  group_by(School_name) %>%
+  summarise(total_SAT_score= sum(Average_scores)) %>%
+  slice_max(total_SAT_score, n= 10)
+
+print(top_total)
+```
+### Top 10 schools SAT SCOREs break down by each test subject
+```{r}
+top_sub <- df2_tidy %>%
+  filter(School_name %in% top_total$School_name)
+#To get the mean for each test subject from the top 10 schools:
+top_sub_mean<- top_sub %>%
+  group_by(Test_subjects) %>%
+  summarise(Mean_score = mean(Average_scores))
+print(top_sub_mean) 
+```
+
+```{r}
+ggplot(top_sub, aes(x=reorder(School_name, Average_scores), y= Average_scores, fill=Test_subjects))+
+  geom_bar(stat='identity') +
+  coord_flip() +
+  labs(title = 'Top 10 High Schools SAT scores by Subject', y='', x ='Average SAT Scores')+
+  theme(legend.position = 'bottom')
+```
+
+### To look at how far ahead the top 10 schools from the mean scores of other schools:
+```{r}
+#To get the mean and standard deviation from all HS that took the SAT:
+tot_stat<- df2_tidy %>%
+  group_by(Test_subjects) %>%
+  summarise(Mean_score= mean(Average_scores), SD=sd(Average_scores), '1+SD'=Mean_score+SD, '2+SD'=Mean_score+SD*2)
+
+tot_stat_mean<- tot_stat$Mean_score
+tot_stat_2sd<- tot_stat$`2+SD`
+
+ggplot() +
+  geom_histogram(data= df2_tidy, aes(x=Average_scores), fill='grey', binwidth=30)+
+  geom_histogram(data= top_sub, aes(x=Average_scores), fill='blue', binwidth=30)+
+    facet_wrap(~Test_subjects)+
+  labs(title = 'Top 10 high schools mean SAT score distribution by test subject',
+        y='',
+        x='Average Scores') +
+  geom_vline(data= tot_stat, aes(xintercept= tot_stat_mean, color ='Mean'), linetype='dotted', linewidth = 0.9)+
+  geom_vline(data= tot_stat, aes(xintercept= tot_stat_2sd, color ='2+SD'), linetype='dashed', linewidth=0.9)+
+  scale_color_manual(values= c('Mean'='red', '2+SD'='black'))
+```
+## Conclusion: Top 10 High Schools are above 2 standard Deviation from the mean scores
+
+### Correlation between # of test takers and average SAT scores
+```{r}
+ggplot(df2_tidy, aes(x= Average_scores, y=Number_of_test_takers))+
+  geom_point() +
+  facet_wrap(~Test_subjects) +
+  geom_smooth(method='lm', se=FALSE) +
+  labs(x= 'Average SAT Score')
+```
+## There is a positive correlation between number of test takers and average SAT scores. The higher number of people from a school participating in the SAT, the average score is generally higher than the mean value. This is observed in all three test subjects.
+
+
