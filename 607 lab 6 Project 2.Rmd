@@ -97,5 +97,54 @@ ggplot(df2_tidy, aes(x= Average_scores, y=Number_of_test_takers))+
   labs(x= 'Average SAT Score')
 ```
 ## There is a positive correlation between number of test takers and average SAT scores. The higher number of people from a school participating in the SAT, the average score is generally higher than the mean value. This is observed in all three test subjects.
+=================================================================================================================================================================================================================================================================================
+# Dataset 3 School diversity from 1994-2017
+
+```{r}
+url3<- "https://raw.githubusercontent.com/stormwhale/data-mines/refs/heads/main/school%20divers.csv"
+df3<-read.csv(url3)
+view(df3)
+```
+
+Cleaning and tidying dataset. The racial groups are already represented in percentage for each school. NA values are assumed to be 0. All percentage will be rounded to the nearest tenth value.
+```{r}
+df3_tidy<- df3 %>%
+  mutate_all(~replace(., is.na(.), 0)) %>%
+  pivot_longer(cols = AIAN:Multi,
+               names_to = 'Ethnicity',
+               values_to = 'Student_percentage') %>%
+  mutate(Student_percentage=round(as.numeric(Student_percentage),1))
+
+head(df3_tidy)
+```
+## Data analysis:
+Overall distribution of ethnicity
+Asian and AIAN groups seem to be the most under integrated among different schools.
+```{r}
+ggplot(df3_tidy, aes(x=Student_percentage, fill=Ethnicity)) +
+  geom_histogram(binwidth = 5, position='dodge') +
+  labs(y='frequency',
+       title = 'Frequency distribution of students ethnicity',
+       subtitle = 'Counted by student percentage')
+```
+### In 2016-2017, which states have schools have integrated the most Asian and AIAN students?
+```{r}
+df3_2017<- df3_tidy %>%
+  filter(SCHOOL_YEAR=='2016-2017') %>%
+  filter((Ethnicity =='Asian' | Ethnicity == 'AIAN') & Student_percentage >= 50) %>%
+  group_by(ST, Ethnicity) %>%
+  summarize(mean_percentage = mean(Student_percentage), .groups = 'drop') %>%
+  arrange(desc(mean_percentage))
+
+print(df3_2017)
+```
+
+```{r}
+ggplot(df3_2017, aes(x=reorder(ST, -mean_percentage), y=mean_percentage, fill= Ethnicity)) +
+  geom_bar(stat='identity', position = 'dodge') +
+  labs(title = 'Year 2016-2017 states with at least 50% AIAN or Asian integration in schools',
+       x='States',
+       y='Mean percentage of students in each state')
+```
 
 
