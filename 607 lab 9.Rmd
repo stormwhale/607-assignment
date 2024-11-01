@@ -1,0 +1,49 @@
+---
+title: "API calls"
+Author: Chi Hang(Philip) Cheung
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+library(tidyverse)
+library(httr2)
+library(dotenv)
+library(purrr)
+```
+
+Top stories API from Nytimes
+```{r}
+base_url<- "https://api.nytimes.com/svc/topstories/v2/"
+section<- 'automobiles.json'
+
+response<- request(paste0(base_url, section)) %>% 
+  req_url_query('api-key' = Sys.getenv('nytimes_key')) %>% 
+  req_perform()
+```
+
+```{r}
+#preview the first article
+Nytimes_home<- response %>% 
+  resp_body_json() %>%
+  pluck('results', 1) %>% 
+  glimpse()
+```
+
+```{r}
+Nytimes_home<- response %>% 
+  resp_body_json() %>%
+  pluck('results') %>%
+  map(~ list('Title'=.x$title, 'url'=.x$url, 'Date'=.x$published_date)) %>% 
+  bind_rows()
+
+#Format Date:
+Nytimes_home<- Nytimes_home %>% 
+  mutate(Date=ymd_hms(Date))
+
+head(Nytimes_home)
+```
+
+
