@@ -13,37 +13,46 @@ library(httr2)
 library(dotenv)
 library(purrr)
 ```
+Make secret key 
+```{r}
+nytimes_a<- secret_make_key()
+nytimes_token<- secret_encrypt(Sys.getenv('nytimes'), nytimes_a)
+nytimes_API_key<- secret_decrypt(nytimes_token, nytimes_a)
+```
+https://api.nytimes.com/svc/topstories/v2/us.json?api-key=yourkey
 
-Top stories API from Nytimes
 ```{r}
 base_url<- "https://api.nytimes.com/svc/topstories/v2/"
-section<- 'automobiles.json'
+section<- 'home'
 
-response<- request(paste0(base_url, section)) %>% 
-  req_url_query('api-key' = Sys.getenv('nytimes_key')) %>% 
+re<- request(base_url) %>% 
+  req_url_path_append(paste0(section, '.json')) %>% 
+  req_url_query(
+    `api-key` = nytimes_API_key) %>% 
   req_perform()
 ```
 
 ```{r}
 #preview the first article
-Nytimes_home<- response %>% 
-  resp_body_json() %>%
-  pluck('results', 1) %>% 
-  glimpse()
-```
+nytimes_home<- re %>% 
+  resp_body_json() %>% 
+  pluck('results') %>% 
+  map(~ list('Title'=.x$title, 'Author'=.x$byline, 'Pub_date'=.x$published_date, 'Section'=.x$section)) %>% 
+  map_dfr(as.data.frame)
 
+#format the date:
+nytimes_home %>% 
+  mutate(Pub_date=ymd_hms(Pub_date))
+```
+Group by sections:
 ```{r}
-Nytimes_home<- response %>% 
-  resp_body_json() %>%
-  pluck('results') %>%
-  map(~ list('Title'=.x$title, 'url'=.x$url, 'Date'=.x$published_date)) %>% 
-  bind_rows()
+sorted<- nytimes_home %>% 
+  group_by(Section) %>% 
+  summarise(numbers=n())
 
-#Format Date:
-Nytimes_home<- Nytimes_home %>% 
-  mutate(Date=ymd_hms(Date))
+ggplot(sorted, aes(x=Section, y=numbers, fill=Section)) +
+    geom_bar(stat='identity')+
+    labs(title='Types of news in the top stories section')
 
-head(Nytimes_home)
 ```
-
 
